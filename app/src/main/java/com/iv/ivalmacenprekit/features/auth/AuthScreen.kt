@@ -15,11 +15,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.iv.ivalmacenprekit.R
+import com.iv.ivalmacenprekit.apiclient.dto.AuthSaasBodyDto
+import com.iv.ivalmacenprekit.features.shared.customtoast.AppToast
+import com.iv.ivalmacenprekit.features.shared.customtoast.ToastType
+import com.iv.ivalmacenprekit.features.shared.customtoast.UiEvent
+import com.iv.ivalmacenprekit.features.shared.loadingbutton.LoadingButton
 
 @Composable
 fun AuthScreen(viewModel: AuthViewModel = hiltViewModel()) {
 
-    val showWsLogin = remember { mutableStateOf(true) }
+    val showWsLogin by viewModel.showWsLogin
 
     var usernameWs by remember { mutableStateOf("") }
     var passwordWs by remember { mutableStateOf("") }
@@ -27,15 +32,34 @@ fun AuthScreen(viewModel: AuthViewModel = hiltViewModel()) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    var toastVisible by remember { mutableStateOf(false) }
+    var toastMessage by remember { mutableStateOf("") }
+    var toastType by remember { mutableStateOf(ToastType.INFO) }
 
-        val usernameState = if (showWsLogin.value) usernameWs else username
-        val passwordState = if (showWsLogin.value) passwordWs else password
+
+    val isLoading by viewModel.isLoading
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is UiEvent.ShowToast -> {
+                    toastMessage = event.message
+                    toastType = event.type
+                    toastVisible = true
+                }
+            }
+        }
+    }
+
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        val usernameState = if (showWsLogin) usernameWs else username
+        val passwordState = if (showWsLogin) passwordWs else password
 
         val onUsernameChange: (String) -> Unit =
-            { if (showWsLogin.value) usernameWs = it else username = it }
+            { if (showWsLogin) usernameWs = it else username = it }
         val onPasswordChange: (String) -> Unit =
-            { if (showWsLogin.value) passwordWs = it else password = it }
+            { if (showWsLogin) passwordWs = it else password = it }
 
         Column(
             modifier = Modifier
@@ -44,70 +68,48 @@ fun AuthScreen(viewModel: AuthViewModel = hiltViewModel()) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            Column(
-                modifier = Modifier.weight(2f),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Username
-                OutlinedTextField(
-                    value = usernameState,
-                    onValueChange = onUsernameChange,
-                    label = {
-                        Text(
-                            if (showWsLogin.value) "Usuario WS" else "Usuario",
-                            fontSize = 12.sp
-                        )
-                    },
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 30.dp, vertical = 10.dp)
-                )
-
-                // Password
-                var passwordVisible by remember { mutableStateOf(false) }
-                OutlinedTextField(
-                    value = passwordState,
-                    onValueChange = onPasswordChange,
-                    label = {
-                        Text(
-                            if (showWsLogin.value) "Contraseña WS" else "Contraseña",
-                            fontSize = 12.sp
-                        )
-                    },
-                    singleLine = true,
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    trailingIcon = {
-                        TextButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Text(if (passwordVisible) "Hide" else "Show", fontSize = 12.sp)
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 30.dp, vertical = 5.dp)
-                )
-            }
-
-            // Login Button
-            Box(
+            OutlinedTextField(
+                value = usernameState,
+                onValueChange = onUsernameChange,
+                label = {
+                    Text(if (showWsLogin) "Usuario WS" else "Usuario", fontSize = 12.sp)
+                },
+                singleLine = true,
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                Button(
-                    onClick = { performAuthentication(viewModel, username, password, showWsLogin) },
-                    modifier = Modifier.width(200.dp)
-                ) {
-                    Text(if (showWsLogin.value) "Verificar" else "Iniciar")
-                }
-            }
+                    .fillMaxWidth()
+                    .padding(horizontal = 30.dp, vertical = 10.dp)
+            )
+
+            var passwordVisible by remember { mutableStateOf(false) }
+            OutlinedTextField(
+                value = passwordState,
+                onValueChange = onPasswordChange,
+                label = {
+                    Text(if (showWsLogin) "Contraseña WS" else "Contraseña", fontSize = 12.sp)
+                },
+                singleLine = true,
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                trailingIcon = {
+                    TextButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Text(if (passwordVisible) "Hide" else "Show", fontSize = 12.sp)
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 30.dp, vertical = 5.dp)
+            )
+
+            LoadingButton(
+                text = if (showWsLogin) "Verificar" else "Iniciar",
+                loading = isLoading,
+                onClick = {
+                    performAuthentication(viewModel, usernameWs, passwordWs, showWsLogin)
+                },
+                modifier = Modifier.width(200.dp)
+            )
         }
 
-        // --- Logo Section ---
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -121,20 +123,51 @@ fun AuthScreen(viewModel: AuthViewModel = hiltViewModel()) {
             )
         }
     }
-}
 
+    AppToast(
+        message = toastMessage,
+        type = toastType,
+        visible = toastVisible,
+        onDismiss = { toastVisible = false }
+    )
+}
 
 
 fun performAuthentication(
     viewModel: AuthViewModel,
     username: String,
     password: String,
-    showWsLogin: MutableState<Boolean>
+    showWsLogin: Boolean
 ) {
-    showWsLogin.value = !showWsLogin.value
+    if (showWsLogin) {
+        submitLoginPrincpal(viewModel, username, password)
+    } else {
+        submitLoginWs(viewModel, username, password)
+    }
+}
 
+fun submitLoginPrincpal(
+    viewModel: AuthViewModel,
+    username: String,
+    password: String,
+) {
     viewModel.submitLoginPrincipal(
         username,
         password
+    )
+}
+
+fun submitLoginWs(
+    viewModel: AuthViewModel,
+    username: String,
+    password: String,
+) {
+    val body = AuthSaasBodyDto(
+        username,
+        password
+    )
+
+    viewModel.submitLoginSaas(
+        body
     )
 }

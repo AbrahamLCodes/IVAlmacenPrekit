@@ -1,5 +1,6 @@
 package com.iv.ivalmacenprekit.di
 
+import android.util.Log
 import com.iv.ivalmacenprekit.apiclient.AlmacenApiService
 import com.iv.ivalmacenprekit.apiclient.AuthPrincipalApiService
 import dagger.Module
@@ -25,7 +26,9 @@ class NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
-        val logging = HttpLoggingInterceptor().apply {
+        val logging = HttpLoggingInterceptor { message ->
+            Log.d("ApiClientLog ", message)
+        }.apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
@@ -36,7 +39,7 @@ class NetworkModule {
 
     @Provides
     @Singleton
-    @Named("LoginRetrofit")
+    @Named("LoginPrincipalRetrofit")
     fun provideLoginRetrofit(client: OkHttpClient): Retrofit =
         Retrofit.Builder()
             .baseUrl(BASE_LOGIN_URL)
@@ -56,7 +59,7 @@ class NetworkModule {
 
     @Provides
     @Singleton
-    fun provideLoginApi(@Named("AuthPrincipalRetrofit") retrofit: Retrofit): AuthPrincipalApiService =
+    fun provideLoginApi(@Named("LoginPrincipalRetrofit") retrofit: Retrofit): AuthPrincipalApiService =
         retrofit.create(AuthPrincipalApiService::class.java)
 
     @Provides

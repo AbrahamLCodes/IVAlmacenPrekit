@@ -8,7 +8,13 @@ import com.iv.ivalmacenprekit.apiclient.dto.AuthSaasResponseDto
 import javax.inject.Inject
 
 interface AuthRepository {
-    suspend fun authPrincipal(): Result<AuthPrincipalResponseDto>
+    suspend fun authPrincipal(
+        usuario: String,
+        contrasena: String,
+        uuid: String,
+        app: Int
+    ): Result<AuthPrincipalResponseDto>
+
     suspend fun authSaas(body: AuthSaasBodyDto): Result<AuthSaasResponseDto>
 }
 
@@ -17,8 +23,18 @@ class AuthRepositoryImpl @Inject constructor(
     private val almacenApi: AlmacenApiService
 ) : AuthRepository {
 
-    override suspend fun authPrincipal(): Result<AuthPrincipalResponseDto> {
-        return authPrincipalApi.login().let {
+    override suspend fun authPrincipal(
+        usuario: String,
+        contrasena: String,
+        uuid: String,
+        app: Int
+    ): Result<AuthPrincipalResponseDto> {
+        return authPrincipalApi.login(
+            usuario,
+            contrasena,
+            uuid,
+            app
+        ).let {
             Result.success(it)
         }
     }
