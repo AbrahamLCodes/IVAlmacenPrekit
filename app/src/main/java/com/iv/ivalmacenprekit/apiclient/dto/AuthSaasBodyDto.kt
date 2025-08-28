@@ -1,6 +1,6 @@
 package com.iv.ivalmacenprekit.apiclient.dto
 
 data class AuthSaasBodyDto(
-    val username: String,
-    val password: String
+    val Username: String,
+    val Password: String
 )

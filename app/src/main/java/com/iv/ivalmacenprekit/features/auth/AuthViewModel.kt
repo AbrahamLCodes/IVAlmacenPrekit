@@ -2,7 +2,6 @@ package com.iv.ivalmacenprekit.features.auth
 
 import android.app.Application
 import android.provider.Settings
-import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
@@ -15,6 +14,7 @@ import com.iv.ivalmacenprekit.features.auth.usecases.AuthPrincipalUseCase
 import com.iv.ivalmacenprekit.features.auth.usecases.AuthSaasUseCase
 import com.iv.ivalmacenprekit.features.shared.customtoast.ToastType
 import com.iv.ivalmacenprekit.features.shared.customtoast.UiEvent
+import com.iv.ivalmacenprekit.features.shared.data.SessionPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -26,6 +26,7 @@ class AuthViewModel @Inject constructor(
     application: Application,
     private val authPrincipalUseCase: AuthPrincipalUseCase,
     private val authSaasUseCase: AuthSaasUseCase,
+    private val sessionPreferences: SessionPreferences
 ) : AndroidViewModel(application) {
 
     private val _authPrincipalResponse = mutableStateOf(
@@ -60,11 +61,27 @@ class AuthViewModel @Inject constructor(
             _isLoading.value = false
 
             if (result.isSuccess) {
-                _authPrincipalResponse.value = result.getOrNull()!!
-                _showWsLogin.value = false // 👈 switch to normal login mode
-                _uiEvent.send(UiEvent.ShowToast("Login Principal exitoso 🎉", ToastType.SUCCESS))
+                val response = result.getOrNull()!!
+
+                // store the response
+                _authPrincipalResponse.value = response
+
+                // ✅ validation: check if array has 1 element and sWebService is empty
+                val isInvalid = response.validaLoginResult.size == 1 &&
+                        response.validaLoginResult.first().sWebService.isNullOrEmpty()
+
+                if (isInvalid) {
+                    _uiEvent.send(UiEvent.ShowToast("Credenciales inválidas ❌", ToastType.DANGER))
+                } else {
+                    _showWsLogin.value = false // switch to SaaS login
+
+                    sessionPreferences.wsUrl = response.validaLoginResult.first().sWebService
+
+                    _uiEvent.send(UiEvent.ShowToast("Login Principal exitoso 🎉", ToastType.SUCCESS))
+                    _uiEvent.send(UiEvent.LoginClienteSuccess)
+                }
             } else {
-                _uiEvent.send(UiEvent.ShowToast("Login Principal fallido ❌", ToastType.DANGER))
+                _uiEvent.send(UiEvent.ShowToast("Error en la red o servidor ⚠️", ToastType.DANGER))
             }
         }
     }
@@ -77,7 +94,24 @@ class AuthViewModel @Inject constructor(
 
             if (result.isSuccess) {
                 _authSaasResponse.value = result.getOrNull()!!
-                _uiEvent.send(UiEvent.ShowToast("Login SaaS correcto ✅", ToastType.SUCCESS))
+
+                val response = _authSaasResponse.value
+
+                val isValid = response.loginUsuarioResult.exito
+
+                if (isValid) {
+                    _uiEvent.send(UiEvent.LoginSaasSuccess)
+                    _uiEvent.send(UiEvent.ShowToast("Login SaaS correcto ✅", ToastType.SUCCESS))
+
+                    sessionPreferences.idUsuario = response.loginUsuarioResult.idUsuario
+                    sessionPreferences.idAlmacen = response.loginUsuarioResult.idAlmacen
+                    sessionPreferences.idRuta = response.loginUsuarioResult.idRuta
+                    sessionPreferences.idSucursal = response.loginUsuarioResult.idSucursal
+                    sessionPreferences.nombreRuta = response.loginUsuarioResult.nombreRuta
+                    sessionPreferences.nombreSucursal = response.loginUsuarioResult.nombreSucursal
+                } else {
+                    _uiEvent.send(UiEvent.ShowToast("Credenciales SaaS inválidas ❌", ToastType.DANGER))
+                }
             } else {
                 _uiEvent.send(UiEvent.ShowToast("Login SaaS fallido ⚠️", ToastType.DANGER))
             }

@@ -26,13 +26,34 @@ class NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
+
         val logging = HttpLoggingInterceptor { message ->
-            Log.d("ApiClientLog ", message)
+            Log.d("ApiClientLog", message)
         }.apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = HttpLoggingInterceptor.Level.HEADERS // or BODY if you want
+        }
+
+        val bodyLoggingInterceptor = okhttp3.Interceptor { chain ->
+            val request = chain.request()
+
+            if (request.method == "POST" || request.method == "PUT") {
+                val requestBody = request.body
+                val buffer = okio.Buffer()
+                requestBody?.writeTo(buffer)
+                val bodyString = buffer.readUtf8()
+                Log.d(
+                    "ApiClientLog",
+                    "Request ${request.method} to ${request.url} \nBody: $bodyString"
+                )
+            } else {
+                Log.d("ApiClientLog", "Request ${request.method} to ${request.url}")
+            }
+
+            chain.proceed(request)
         }
 
         return OkHttpClient.Builder()
+            .addInterceptor(bodyLoggingInterceptor)
             .addInterceptor(logging)
             .build()
     }

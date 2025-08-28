@@ -10,25 +10,32 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.iv.ivalmacenprekit.R
 import com.iv.ivalmacenprekit.navigation.Screen
 import kotlinx.coroutines.delay
 
 @Composable
-fun SplashScreen(navController: NavController) {
-    var isLoggedIn by remember { mutableStateOf<Boolean?>(null) }
+fun SplashScreen(
+    navController: NavController,
+    viewModel: SplashViewModel = hiltViewModel()
+) {
+
+    var redirectDone by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         delay(2000)
-        isLoggedIn = false
-        if (isLoggedIn == true) {
-            navController.navigate(Screen.Home.route) {
-                popUpTo(Screen.Splash.route) { inclusive = true }
-            }
-        } else {
-            navController.navigate(Screen.Auth.route) {
-                popUpTo(Screen.Splash.route) { inclusive = true }
+        if (!redirectDone) {
+            redirectDone = true
+            if (viewModel.isLoggedIn) {
+                navController.navigate(Screen.Home.route) {
+                    popUpTo(Screen.Splash.route) { inclusive = true }
+                }
+            } else {
+                navController.navigate(Screen.Auth.route) {
+                    popUpTo(Screen.Splash.route) { inclusive = true }
+                }
             }
         }
     }
@@ -55,7 +62,7 @@ fun SplashScreen(navController: NavController) {
             contentAlignment = Alignment.BottomCenter
         ) {
             Text(
-                text = "R18",
+                text = "V2 R1",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
