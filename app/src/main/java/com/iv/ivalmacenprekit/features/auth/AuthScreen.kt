@@ -36,11 +36,11 @@ fun AuthScreen(
 
     val showWsLogin by viewModel.showWsLogin
 
-    var usernameWs by remember { mutableStateOf("secicpruebas") }
-    var passwordWs by remember { mutableStateOf("123") }
+    var usernameWs by remember { mutableStateOf("") }
+    var passwordWs by remember { mutableStateOf("") }
 
-    var usernameSaas by remember { mutableStateOf("Integral") }
-    var passwordSaas by remember { mutableStateOf("B") }
+    var usernameSaas by remember { mutableStateOf("") }
+    var passwordSaas by remember { mutableStateOf("") }
 
     var toastVisible by remember { mutableStateOf(false) }
     var toastMessage by remember { mutableStateOf("") }
