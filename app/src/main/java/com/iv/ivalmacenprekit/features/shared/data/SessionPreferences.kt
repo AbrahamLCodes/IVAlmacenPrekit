@@ -13,25 +13,17 @@ class SessionPreferences @Inject constructor(
         get() = prefs.getString("ws_url", null)
         set(value) = prefs.edit().putString("ws_url", value).apply()
 
-    var idAlmacen: Int
-        get() = prefs.getInt("id_almacen", -1)
-        set(value) = prefs.edit().putInt("id_almacen", value).apply()
-
-    var idRuta: Int
-        get() = prefs.getInt("id_ruta", -1)
-        set(value) = prefs.edit().putInt("id_ruta", value).apply()
-
-    var idSucursal: Int
-        get() = prefs.getInt("id_sucursal", -1)
-        set(value) = prefs.edit().putInt("id_sucursal", value).apply()
-
     var idUsuario: Int
         get() = prefs.getInt("id_usuario", -1)
         set(value) = prefs.edit().putInt("id_usuario", value).apply()
 
-    var nombreRuta: String?
-        get() = prefs.getString("nombre_ruta", null)
-        set(value) = prefs.edit().putString("nombre_ruta", value).apply()
+    var idAlmacen: Int
+        get() = prefs.getInt("id_almacen", -1)
+        set(value) = prefs.edit().putInt("id_almacen", value).apply()
+
+    var idSucursal: Int
+        get() = prefs.getInt("id_sucursal", -1)
+        set(value) = prefs.edit().putInt("id_sucursal", value).apply()
 
     var nombreSucursal: String?
         get() = prefs.getString("nombre_sucursal", null)

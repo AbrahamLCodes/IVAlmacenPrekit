@@ -29,19 +29,20 @@ class AuthRepositoryImpl @Inject constructor(
         uuid: String,
         app: Int
     ): Result<AuthPrincipalResponseDto> {
-        return authPrincipalApi.login(
-            usuario,
-            contrasena,
-            uuid,
-            app
-        ).let {
-            Result.success(it)
+        return try {
+            val response = authPrincipalApi.login(usuario, contrasena, uuid, app)
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
     override suspend fun authSaas(body: AuthSaasBodyDto): Result<AuthSaasResponseDto> {
-        return almacenApi.loginSaas(body).let {
-            Result.success(it)
+        return try {
+            val response = almacenApi.loginSaas(body)
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

@@ -58,6 +58,7 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             val result = authPrincipalUseCase(username, password, idAndroid, app)
+            val x = 0
             _isLoading.value = false
 
             if (result.isSuccess) {
@@ -105,10 +106,6 @@ class AuthViewModel @Inject constructor(
 
                     sessionPreferences.idUsuario = response.loginUsuarioResult.idUsuario
                     sessionPreferences.idAlmacen = response.loginUsuarioResult.idAlmacen
-                    sessionPreferences.idRuta = response.loginUsuarioResult.idRuta
-                    sessionPreferences.idSucursal = response.loginUsuarioResult.idSucursal
-                    sessionPreferences.nombreRuta = response.loginUsuarioResult.nombreRuta
-                    sessionPreferences.nombreSucursal = response.loginUsuarioResult.nombreSucursal
                 } else {
                     _uiEvent.send(UiEvent.ShowToast("Credenciales SaaS inválidas ❌", ToastType.DANGER))
                 }

@@ -25,17 +25,22 @@ import com.iv.ivalmacenprekit.features.shared.customtoast.ToastType
 import com.iv.ivalmacenprekit.features.shared.customtoast.UiEvent
 import com.iv.ivalmacenprekit.features.shared.loadingbutton.LoadingButton
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.navigation.NavController
+import com.iv.ivalmacenprekit.navigation.Screen
 
 @Composable
-fun AuthScreen(viewModel: AuthViewModel = hiltViewModel()) {
+fun AuthScreen(
+    navController: NavController,
+    viewModel: AuthViewModel = hiltViewModel()
+) {
 
     val showWsLogin by viewModel.showWsLogin
 
-    var usernameWs by remember { mutableStateOf("") }
-    var passwordWs by remember { mutableStateOf("") }
+    var usernameWs by remember { mutableStateOf("secicpruebas") }
+    var passwordWs by remember { mutableStateOf("123") }
 
-    var usernameSaas by remember { mutableStateOf("") }
-    var passwordSaas by remember { mutableStateOf("") }
+    var usernameSaas by remember { mutableStateOf("Integral") }
+    var passwordSaas by remember { mutableStateOf("B") }
 
     var toastVisible by remember { mutableStateOf(false) }
     var toastMessage by remember { mutableStateOf("") }
@@ -63,7 +68,13 @@ fun AuthScreen(viewModel: AuthViewModel = hiltViewModel()) {
                 is UiEvent.LoginSaasSuccess -> {
                     focusManager.clearFocus()
                     keyboardController?.hide()
+
+                    navController.navigate(Screen.Sucursales.route) {
+                        popUpTo(Screen.Auth.route) { inclusive = true }
+                    }
                 }
+
+                else -> {}
             }
         }
     }

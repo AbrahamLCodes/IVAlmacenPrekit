@@ -13,7 +13,7 @@ import com.iv.ivalmacenprekit.navigation.Screen
 import com.iv.ivalmacenprekit.features.auth.AuthScreen
 import com.iv.ivalmacenprekit.features.home.HomeScreen
 import com.iv.ivalmacenprekit.features.splash.SplashScreen
-
+import com.iv.ivalmacenprekit.features.sucursales.SucursalesScreen
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -31,10 +31,13 @@ class MainActivity : ComponentActivity() {
                         SplashScreen(navController)
                     }
                     composable(Screen.Auth.route) {
-                        AuthScreen()
+                        AuthScreen(navController)
                     }
                     composable(Screen.Home.route) {
-                        HomeScreen()
+                        HomeScreen(navController)
+                    }
+                    composable(Screen.Sucursales.route) {
+                        SucursalesScreen(navController)
                     }
                 }
             }
