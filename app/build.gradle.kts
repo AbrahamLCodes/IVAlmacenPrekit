@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
     implementation(libs.hilt.navigation.fragment)
     implementation(libs.okhttp.logging.interceptor)
+    implementation(libs.lottie.compose)
     ksp(libs.hilt.compiler)
 }
 

@@ -54,7 +54,7 @@ fun SucursalesScreen(
 
                 is UiEvent.SucursalSavedSuccess -> {
                     navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Sucursales.route) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                     }
                 }
 
