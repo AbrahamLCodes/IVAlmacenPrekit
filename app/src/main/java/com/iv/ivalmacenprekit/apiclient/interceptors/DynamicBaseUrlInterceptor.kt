@@ -14,19 +14,26 @@ class DynamicBaseUrlInterceptor @Inject constructor(
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         var request = chain.request()
-        val originalUrl = request.url.toString()
+        val originalUrl = request.url
 
-        // Only modify requests that are NOT LoginPrincipal
-        if (!originalUrl.contains("LoginPrincipal")) {
+        if (!originalUrl.toString().contains("LoginPrincipal")) {
             val wsUrl = sessionPreferences.wsUrl
             if (!wsUrl.isNullOrBlank()) {
                 val newBaseUrl = wsUrl.toHttpUrl()
 
-                // Rebuild the URL by taking the encodedPath from originalUrl
-                val relativePath = request.url.encodedPath.substringAfterLast("json/")
-                val newUrl = newBaseUrl.newBuilder()
+                val relativePath = originalUrl.encodedPath.substringAfterLast("json/")
+
+                val newUrlBuilder = newBaseUrl.newBuilder()
                     .addPathSegments(relativePath)
-                    .build()
+
+                for (i in 0 until originalUrl.querySize) {
+                    newUrlBuilder.addQueryParameter(
+                        originalUrl.queryParameterName(i),
+                        originalUrl.queryParameterValue(i)
+                    )
+                }
+
+                val newUrl = newUrlBuilder.build()
 
                 request = request.newBuilder()
                     .url(newUrl)

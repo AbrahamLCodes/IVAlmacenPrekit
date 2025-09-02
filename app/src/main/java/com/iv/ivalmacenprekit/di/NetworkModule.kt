@@ -3,6 +3,7 @@ package com.iv.ivalmacenprekit.di
 import android.util.Log
 import com.iv.ivalmacenprekit.apiclient.AlmacenApiService
 import com.iv.ivalmacenprekit.apiclient.AuthPrincipalApiService
+import com.iv.ivalmacenprekit.apiclient.PurchasesApiService
 import com.iv.ivalmacenprekit.apiclient.interceptors.DynamicBaseUrlInterceptor
 import dagger.Module
 import dagger.Provides
@@ -79,6 +80,16 @@ class NetworkModule {
 
     @Provides
     @Singleton
+    @Named("ComprasRetrofit")
+    fun provideComprasRetrofit(client: OkHttpClient): Retrofit =
+        Retrofit.Builder()
+            .baseUrl(BASE_ALMACEN_URL)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+    @Provides
+    @Singleton
     fun provideLoginApi(@Named("LoginPrincipalRetrofit") retrofit: Retrofit): AuthPrincipalApiService =
         retrofit.create(AuthPrincipalApiService::class.java)
 
@@ -86,4 +97,9 @@ class NetworkModule {
     @Singleton
     fun provideAlmacenApi(@Named("AlmacenRetrofit") retrofit: Retrofit): AlmacenApiService =
         retrofit.create(AlmacenApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideComprasApi(@Named("ComprasRetrofit") retrofit: Retrofit): PurchasesApiService =
+        retrofit.create(PurchasesApiService::class.java)
 }

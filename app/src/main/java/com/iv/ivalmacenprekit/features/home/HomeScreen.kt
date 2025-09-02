@@ -40,8 +40,8 @@ import androidx.navigation.NavController
 import com.iv.ivalmacenprekit.R
 import com.iv.ivalmacenprekit.features.shared.sweetalert.AlertType
 import com.iv.ivalmacenprekit.features.shared.sweetalert.SweetAlert
+import com.iv.ivalmacenprekit.navigation.Screen
 import kotlinx.coroutines.delay
-
 
 @Composable
 fun HomeScreen(navController: NavController) {
@@ -83,7 +83,7 @@ fun HomeScreen(navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(Color.Red)
+                    .background(Color(0xFF7B1E3D))
             )
         }
 
@@ -149,9 +149,18 @@ fun HomeScreen(navController: NavController) {
             message = alertMessage,
             confirmText = "Sí",
             cancelText = "No",
-            onConfirm = { showAlert = false },
-            onCancel = { showAlert = false },
-            onDismiss = { showAlert = false }
+            onConfirm = {
+                showAlert = false
+                onConfirmSweetAlert(navController)
+            },
+            onCancel = {
+                showAlert = false
+                onCancelSweetAlert()
+            },
+            onDismiss = {
+                showAlert = false
+                onDismissSweetAlert()
+            }
         )
     }
 }
@@ -198,4 +207,16 @@ fun MenuItem(icon: Int, label: String, onClick: () -> Unit) {
 
 fun navigateTo(navController: NavController, route: String) {
     navController.navigate(route)
+}
+
+fun onConfirmSweetAlert(navController: NavController) {
+    navigateTo(navController, Screen.Purchases.route)
+}
+
+fun onCancelSweetAlert() {
+
+}
+
+fun onDismissSweetAlert() {
+
 }

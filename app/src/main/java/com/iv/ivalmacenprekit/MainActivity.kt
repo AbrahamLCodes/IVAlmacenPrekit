@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import com.iv.ivalmacenprekit.navigation.Screen
 import com.iv.ivalmacenprekit.features.auth.AuthScreen
 import com.iv.ivalmacenprekit.features.home.HomeScreen
+import com.iv.ivalmacenprekit.features.purchases.PurchasesScreen
 import com.iv.ivalmacenprekit.features.splash.SplashScreen
 import com.iv.ivalmacenprekit.features.sucursales.SucursalesScreen
 
@@ -38,6 +39,9 @@ class MainActivity : ComponentActivity() {
                     }
                     composable(Screen.Sucursales.route) {
                         SucursalesScreen(navController)
+                    }
+                    composable(Screen.Purchases.route) {
+                        PurchasesScreen(navController)
                     }
                 }
             }

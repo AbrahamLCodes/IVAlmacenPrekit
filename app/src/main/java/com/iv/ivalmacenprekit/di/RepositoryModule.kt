@@ -2,8 +2,11 @@ package com.iv.ivalmacenprekit.di
 
 import com.iv.ivalmacenprekit.apiclient.AlmacenApiService
 import com.iv.ivalmacenprekit.apiclient.AuthPrincipalApiService
+import com.iv.ivalmacenprekit.apiclient.PurchasesApiService
 import com.iv.ivalmacenprekit.features.auth.AuthRepository
 import com.iv.ivalmacenprekit.features.auth.AuthRepositoryImpl
+import com.iv.ivalmacenprekit.features.purchases.PurchasesRepository
+import com.iv.ivalmacenprekit.features.purchases.PurchasesRepositoryImpl
 import com.iv.ivalmacenprekit.features.sucursales.SucursalesRepository
 import com.iv.ivalmacenprekit.features.sucursales.SucursalesRepositoryImpl
 import dagger.Module
@@ -19,7 +22,8 @@ class RepositoryModule {
     @Singleton
     fun provideAuthRepository(
         authPrincipalApi: AuthPrincipalApiService,
-        almacenApiService: AlmacenApiService): AuthRepository {
+        almacenApiService: AlmacenApiService
+    ): AuthRepository {
         return AuthRepositoryImpl(authPrincipalApi, almacenApiService)
     }
 
@@ -29,5 +33,13 @@ class RepositoryModule {
         almacenApiService: AlmacenApiService
     ): SucursalesRepository {
         return SucursalesRepositoryImpl(almacenApiService)
+    }
+
+    @Provides
+    @Singleton
+    fun providePurchasesRepository(
+        purchasesApiService: PurchasesApiService
+    ): PurchasesRepository {
+        return PurchasesRepositoryImpl(purchasesApiService)
     }
 }

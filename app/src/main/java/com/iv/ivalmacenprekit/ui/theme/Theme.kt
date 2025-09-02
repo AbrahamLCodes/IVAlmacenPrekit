@@ -11,6 +11,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.iv.ivalmacenprekit.R
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.luminance
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 private val LightColorScheme = lightColorScheme(
     primary = black,
@@ -59,12 +62,24 @@ val AppTypography = Typography(
     )
 )
 
+
 @Composable
 fun IVAlmacenPrekitTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
+    val systemUiController = rememberSystemUiController()
+    val statusBarColor = black
+    val useDarkIcons = statusBarColor.luminance() > 0.5f
+
+    LaunchedEffect(statusBarColor) {
+        systemUiController.setStatusBarColor(
+            color = statusBarColor,
+            darkIcons = useDarkIcons
+        )
+    }
+
     MaterialTheme(
         colorScheme = LightColorScheme,
         typography = AppTypography,

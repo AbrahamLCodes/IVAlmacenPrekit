@@ -16,6 +16,7 @@ hiltNavigationFragment = "1.2.0"
 javapoetVersion = "1.13.0"
 okhttp = "4.10.0"
 lottieVersion = "6.1.0"
+systemUiController = "0.36.0"
 
 
 [libraries]
@@ -44,6 +45,7 @@ hilt-navigation-fragment = { group = "androidx.hilt", name = "hilt-navigation-fr
 javapoet = { group = "com.squareup", name = "javapoet", version.ref = "javapoetVersion" }
 okhttp-logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "okhttp" }
 lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottieVersion" }
+system-ui-controller = { group = "com.google.accompanist", name = "accompanist-systemuicontroller", version.ref = "systemUiController" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
