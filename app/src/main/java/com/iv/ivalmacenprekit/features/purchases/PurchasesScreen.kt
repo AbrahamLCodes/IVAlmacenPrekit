@@ -1,9 +1,7 @@
 package com.iv.ivalmacenprekit.features.purchases
 
 import android.app.TimePickerDialog
-import android.content.res.Resources
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,12 +20,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -52,6 +47,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.iv.ivalmacenprekit.R
 import com.iv.ivalmacenprekit.apiclient.dto.DataItemDto
 import com.iv.ivalmacenprekit.features.shared.genericselector.GenericSelector
+import com.iv.ivalmacenprekit.navigation.Screen
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -90,7 +86,6 @@ fun PurchasesScreen(
                 bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             )
     ) {
-        // Top bar stays pinned
         Surface(
             color = Color(0xFF7B1E3D),
             modifier = Modifier.fillMaxWidth()
@@ -250,7 +245,7 @@ fun PurchasesScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Button(
-                            onClick = { /* TODO: Handle submit action */ },
+                            onClick = { navController.navigate(Screen.PurchaseDataScreen.route) },
                             modifier = Modifier
                                 .width(200.dp)
                                 .height(48.dp),

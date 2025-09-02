@@ -9,6 +9,8 @@ import com.iv.ivalmacenprekit.ui.theme.IVAlmacenPrekitTheme
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.iv.ivalmacenprekit.features.ComprasData.PurchaseDataScreen
+import com.iv.ivalmacenprekit.features.articleselection.PurchaseArticleSelectionScreen
 import com.iv.ivalmacenprekit.navigation.Screen
 import com.iv.ivalmacenprekit.features.auth.AuthScreen
 import com.iv.ivalmacenprekit.features.home.HomeScreen
@@ -43,6 +45,13 @@ class MainActivity : ComponentActivity() {
                     composable(Screen.Purchases.route) {
                         PurchasesScreen(navController)
                     }
+                    composable(Screen.PurchaseDataScreen.route) {
+                        PurchaseDataScreen(navController)
+                    }
+                    composable(Screen.PurchaseArticleSelectionScreen.route) {
+                        PurchaseArticleSelectionScreen(navController)
+                    }
+
                 }
             }
         }
