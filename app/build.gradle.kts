@@ -68,6 +68,7 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.lottie.compose)
     implementation(libs.system.ui.controller)
+    implementation("androidx.compose.material:material")
     ksp(libs.hilt.compiler)
 }
 
