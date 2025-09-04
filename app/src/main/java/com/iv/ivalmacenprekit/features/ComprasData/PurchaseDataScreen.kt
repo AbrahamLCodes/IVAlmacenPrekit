@@ -1,5 +1,7 @@
 package com.iv.ivalmacenprekit.features.ComprasData
 
+import android.net.Uri
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +35,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.rememberSwipeableState
 import androidx.compose.material.swipeable
 import androidx.compose.material3.Divider
@@ -46,6 +47,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +58,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -64,19 +68,43 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.iv.ivalmacenprekit.R
 import com.iv.ivalmacenprekit.features.ComprasData.data.ItemArticle
+import com.iv.ivalmacenprekit.features.ComprasData.modals.EvidenceModal
 import com.iv.ivalmacenprekit.features.ComprasData.modals.PurchaseArticleSelectionModal
+import com.iv.ivalmacenprekit.features.ComprasData.modals.ResumeModalBottomSheet
+import com.iv.ivalmacenprekit.features.shared.customtoast.AppToast
+import com.iv.ivalmacenprekit.features.shared.customtoast.ToastType
+import com.iv.ivalmacenprekit.features.shared.customtoast.UiEvent
+import com.iv.ivalmacenprekit.navigation.Screen
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
-fun PurchaseDataScreen(navController: NavController) {
+fun PurchaseDataScreen(
+    navController: NavController,
+    viewModel: PurchaseDataViewModel = hiltViewModel()
+) {
     var showSheet by remember { mutableStateOf(false) }
     var selectedArticle by remember { mutableStateOf<ItemArticle?>(null) }
     var showDetailSheet by remember { mutableStateOf(false) }
+
+    var showEvidenceSheet by remember { mutableStateOf(false) }
+    var invoiceNumber by remember { mutableStateOf("") }
+    var photoUri by remember { mutableStateOf<Uri?>(null) }
+    val currentDateTime = remember {
+        java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+            .format(java.time.LocalDateTime.now())
+    }
+
+    var toastVisible by remember { mutableStateOf(false) }
+    var toastMessage by remember { mutableStateOf("") }
+    var toastType by remember { mutableStateOf(ToastType.INFO) }
+
+    var showResumeSheet by remember { mutableStateOf(false) }
 
     val mockRepository = remember {
         mutableStateListOf(
@@ -95,6 +123,21 @@ fun PurchaseDataScreen(navController: NavController) {
 
     val addedMockData = remember { mutableStateListOf<ItemArticle>() }
     val total = addedMockData.sumOf { it.quantity * it.unitPrice * (1 - it.impDiscount / 100) }
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is UiEvent.ShowToast -> {
+                    toastMessage = event.message
+                    toastType = event.type
+                    toastVisible = true
+                    Log.d("", "Showing Toast Launched Effect")
+                }
+
+                else -> {}
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -154,7 +197,10 @@ fun PurchaseDataScreen(navController: NavController) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp) // adds spacing between buttons
             ) {
                 Button(
-                    onClick = { /* TODO: Acción Evidencia */ },
+                    onClick = {
+                        Log.d("PurchaseDataScreen", "Evidencia button clicked")
+                        showEvidenceSheet = true
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
@@ -168,10 +214,17 @@ fun PurchaseDataScreen(navController: NavController) {
                 }
 
                 Button(
-                    onClick = { /* TODO: Acción Guardar */ },
+                    onClick = {
+                        submitPurchaseData(
+                            invoiceNumber,
+                            photoUri,
+                            addedMockData,
+                            onValidPurchase = { showResumeSheet = true },
+                            viewModel
+                        )
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
-
                     Icon(
                         painter = painterResource(id = R.drawable.svg_save),
                         contentDescription = "Guardar",
@@ -195,7 +248,6 @@ fun PurchaseDataScreen(navController: NavController) {
             )
 
             Spacer(modifier = Modifier.height(8.dp))
-
 
             Text(
                 text = "Desliza a la izquierda para más acciones",
@@ -271,8 +323,6 @@ fun PurchaseDataScreen(navController: NavController) {
                     )
                 }
             }
-
-
         }
 
         PurchaseArticleSelectionBottomSheet(
@@ -282,6 +332,25 @@ fun PurchaseDataScreen(navController: NavController) {
             onRemoveArticle = { addedMockData.remove(it) },
             repositoryData = mockRepository,
             actualData = addedMockData
+        )
+
+        EvidenceBottomSheet(
+            showSheet = showEvidenceSheet,
+            onDismiss = { showEvidenceSheet = false },
+            invoiceNumber = invoiceNumber,
+            onInvoiceNumberChange = { invoiceNumber = it },
+            currentDateTime = currentDateTime,
+            photoUri = photoUri,
+            onPhotoTaken = { photoUri = it },
+            onResetPhoto = { photoUri = null }
+        )
+
+        ResumePurchaseBottomSheet(
+            showSheet = showResumeSheet,
+            onDismiss = { showResumeSheet = false },
+            addedArticles = addedMockData,
+            onContinue = { viewModel.showToast("Compra guardada", ToastType.SUCCESS) },
+            photoUri
         )
 
         if (showDetailSheet && selectedArticle != null) {
@@ -377,7 +446,110 @@ fun PurchaseDataScreen(navController: NavController) {
                     )
                 }
             }
+        }
+    }
 
+    AppToast(
+        message = toastMessage,
+        type = toastType,
+        visible = toastVisible,
+        onDismiss = { toastVisible = false }
+    )
+}
+
+
+fun submitPurchaseData(
+    invoiceNumber: String,
+    photoUri: Uri?,
+    addedMockData: List<ItemArticle>,
+    onValidPurchase: () -> Unit,
+    viewModel: PurchaseDataViewModel
+) {
+    if (validatePurchase(invoiceNumber, photoUri, addedMockData)) {
+        // Trigger the Resume BottomSheet
+        onValidPurchase()
+    } else {
+        viewModel.showToast("Faltan datos para completar la compra", ToastType.DANGER)
+    }
+}
+
+fun validatePurchase(
+    invoiceNumber: String,
+    photoUri: Uri?,
+    addedArticles: List<ItemArticle>
+): Boolean {
+    return invoiceNumber.isNotBlank() && photoUri != null && addedArticles.isNotEmpty()
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PurchaseArticleSelectionBottomSheet(
+    showSheet: Boolean,
+    onDismiss: () -> Unit,
+    onAddArticle: (ItemArticle) -> Unit,
+    onRemoveArticle: (ItemArticle) -> Unit,
+    repositoryData: List<ItemArticle>,
+    actualData: List<ItemArticle>
+) {
+    if (showSheet) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = sheetState,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.8f)
+            ) {
+                PurchaseArticleSelectionModal(
+                    onDismiss = onDismiss,
+                    repositoryData = repositoryData,
+                    actualData = actualData,
+                    onAddArticle = onAddArticle,
+                    onRemoveArticle = onRemoveArticle
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EvidenceBottomSheet(
+    showSheet: Boolean,
+    onDismiss: () -> Unit,
+    invoiceNumber: String,
+    onInvoiceNumberChange: (String) -> Unit,
+    currentDateTime: String,
+    photoUri: Uri?,
+    onPhotoTaken: (Uri) -> Unit,
+    onResetPhoto: () -> Unit
+) {
+    if (showSheet) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = sheetState,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.8f)
+            ) {
+                EvidenceModal(
+                    invoiceNumber = invoiceNumber,
+                    onInvoiceNumberChange = onInvoiceNumberChange,
+                    currentDateTime = currentDateTime,
+                    photoUri = photoUri,
+                    onPhotoTaken = onPhotoTaken,
+                    onResetPhoto = onResetPhoto
+                )
+            }
         }
     }
 }
@@ -405,7 +577,6 @@ fun SwipeableRow(
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
     ) {
-        // Background Row (action buttons)
         Row(
             modifier = Modifier
                 .fillMaxHeight()
@@ -505,7 +676,12 @@ fun SwipeableRow(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
             )
             Text(
-                "$${String.format("%.2f", item.quantity * item.unitPrice * (1 - item.impDiscount / 100))}",
+                "$${
+                    String.format(
+                        "%.2f",
+                        item.quantity * item.unitPrice * (1 - item.impDiscount / 100)
+                    )
+                }",
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center
             )
@@ -516,16 +692,22 @@ fun SwipeableRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PurchaseArticleSelectionBottomSheet(
+fun ResumePurchaseBottomSheet(
     showSheet: Boolean,
     onDismiss: () -> Unit,
-    onAddArticle: (ItemArticle) -> Unit,
-    onRemoveArticle: (ItemArticle) -> Unit,
-    repositoryData: List<ItemArticle>,
-    actualData: List<ItemArticle>
+    addedArticles: List<ItemArticle>,
+    onContinue: () -> Unit,
+    uri: Uri?
 ) {
     if (showSheet) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+        val subtotal = addedArticles.sumOf { it.quantity * it.unitPrice }
+        val totalDiscount =
+            addedArticles.sumOf { it.quantity * it.unitPrice * (it.impDiscount / 100) }
+        val iva = subtotal * 0.16 // mock IVA 16%
+        val ieps = subtotal * 0.08 // mock IEPS 8%
+        val total = subtotal - totalDiscount + iva + ieps
 
         ModalBottomSheet(
             onDismissRequest = onDismiss,
@@ -537,14 +719,18 @@ fun PurchaseArticleSelectionBottomSheet(
                     .fillMaxWidth()
                     .fillMaxHeight(0.8f)
             ) {
-                PurchaseArticleSelectionModal(
+                ResumeModalBottomSheet(
+                    subtotal = subtotal,
+                    totalDiscount = totalDiscount,
+                    iva = iva,
+                    ieps = ieps,
+                    total = total,
+                    onContinue = onContinue,
                     onDismiss = onDismiss,
-                    repositoryData = repositoryData,
-                    actualData = actualData,
-                    onAddArticle = onAddArticle,
-                    onRemoveArticle = onRemoveArticle
+                    photoUri = uri
                 )
             }
         }
     }
 }
+

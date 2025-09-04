@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.lottie.compose)
     implementation(libs.system.ui.controller)
     implementation("androidx.compose.material:material")
+    implementation(libs.coil.compose)
     ksp(libs.hilt.compiler)
 }
 
