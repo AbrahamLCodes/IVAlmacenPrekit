@@ -4,5 +4,6 @@ data class ItemArticle(
     val code: String,
     val name: String,
     val quantity: Int,
-    val unitPrice: Double
+    val unitPrice: Double,
+    val impDiscount: Double
 )
