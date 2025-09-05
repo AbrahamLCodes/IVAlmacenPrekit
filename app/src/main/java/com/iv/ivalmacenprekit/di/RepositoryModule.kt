@@ -5,8 +5,8 @@ import com.iv.ivalmacenprekit.apiclient.AuthPrincipalApiService
 import com.iv.ivalmacenprekit.apiclient.PurchasesApiService
 import com.iv.ivalmacenprekit.features.auth.AuthRepository
 import com.iv.ivalmacenprekit.features.auth.AuthRepositoryImpl
-import com.iv.ivalmacenprekit.features.purchases.PurchasesRepository
-import com.iv.ivalmacenprekit.features.purchases.PurchasesRepositoryImpl
+import com.iv.ivalmacenprekit.features.shared.data.PurchasesRepository
+import com.iv.ivalmacenprekit.features.shared.data.PurchasesRepositoryImpl
 import com.iv.ivalmacenprekit.features.sucursales.SucursalesRepository
 import com.iv.ivalmacenprekit.features.sucursales.SucursalesRepositoryImpl
 import dagger.Module

@@ -155,7 +155,7 @@ fun HomeScreen(navController: NavController) {
             },
             onCancel = {
                 showAlert = false
-                onCancelSweetAlert()
+                onCancelSweetAlert(navController)
             },
             onDismiss = {
                 showAlert = false
@@ -213,8 +213,8 @@ fun onConfirmSweetAlert(navController: NavController) {
     navigateTo(navController, Screen.Purchases.route)
 }
 
-fun onCancelSweetAlert() {
-
+fun onCancelSweetAlert(navController: NavController) {
+    navigateTo(navController, Screen.Purchases.route)
 }
 
 fun onDismissSweetAlert() {

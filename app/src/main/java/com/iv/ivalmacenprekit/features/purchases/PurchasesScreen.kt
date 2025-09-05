@@ -264,7 +264,6 @@ fun PurchasesScreen(
         }
     }
 
-    // Date picker dialog (unchanged)
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },

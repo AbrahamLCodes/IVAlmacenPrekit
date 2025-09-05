@@ -33,18 +33,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.iv.ivalmacenprekit.features.ComprasData.data.ItemArticle
+import com.iv.ivalmacenprekit.apiclient.dto.ArticuloCompraDto
+import kotlin.collections.filter
 
 @Composable
 fun PurchaseArticleSelectionModal(
     onDismiss: () -> Unit,
-    repositoryData: List<ItemArticle>,
-    actualData: List<ItemArticle>,
-    onAddArticle: (ItemArticle) -> Unit,
-    onRemoveArticle: (ItemArticle) -> Unit
+    repositoryData: List<ArticuloCompraDto>,
+    actualData: List<ArticuloCompraDto>,
+    onAddArticle: (ArticuloCompraDto) -> Unit,
+    onRemoveArticle: (ArticuloCompraDto) -> Unit
 ) {
     var searchText by remember { mutableStateOf("") }
-    val filteredArticles = repositoryData.filter { it.name.contains(searchText, ignoreCase = true) }
+    val filteredArticles = repositoryData.filter { it.nombre.contains(searchText, ignoreCase = true) }
 
     Column(
         modifier = Modifier
@@ -108,7 +109,7 @@ fun PurchaseArticleSelectionModal(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = article.name,
+                            text = article.nombre,
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.weight(1f)
                         )

@@ -58,8 +58,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -68,17 +66,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.iv.ivalmacenprekit.R
-import com.iv.ivalmacenprekit.features.ComprasData.data.ItemArticle
+import com.iv.ivalmacenprekit.apiclient.dto.ArticuloCompraDto
 import com.iv.ivalmacenprekit.features.ComprasData.modals.EvidenceModal
 import com.iv.ivalmacenprekit.features.ComprasData.modals.PurchaseArticleSelectionModal
 import com.iv.ivalmacenprekit.features.ComprasData.modals.ResumeModalBottomSheet
 import com.iv.ivalmacenprekit.features.shared.customtoast.AppToast
 import com.iv.ivalmacenprekit.features.shared.customtoast.ToastType
 import com.iv.ivalmacenprekit.features.shared.customtoast.UiEvent
-import com.iv.ivalmacenprekit.navigation.Screen
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -89,7 +91,7 @@ fun PurchaseDataScreen(
     viewModel: PurchaseDataViewModel = hiltViewModel()
 ) {
     var showSheet by remember { mutableStateOf(false) }
-    var selectedArticle by remember { mutableStateOf<ItemArticle?>(null) }
+    var selectedArticle by remember { mutableStateOf<ArticuloCompraDto?>(null) }
     var showDetailSheet by remember { mutableStateOf(false) }
 
     var showEvidenceSheet by remember { mutableStateOf(false) }
@@ -106,23 +108,11 @@ fun PurchaseDataScreen(
 
     var showResumeSheet by remember { mutableStateOf(false) }
 
-    val mockRepository = remember {
-        mutableStateListOf(
-            ItemArticle("A001", "Articulo A", 3, 13.0, 0.0),
-            ItemArticle("A002", "Articulo B", 6, 8.5, 0.0),
-            ItemArticle(
-                "A003",
-                "Articulo con un nombre muy muy largo que debería truncarse",
-                1,
-                11.0,
-                0.0
-            ),
-            ItemArticle("A004", "Articulo D", 4, 14.0, 0.0),
-        )
-    }
+    val dataRepository by viewModel.allArticles
+    val addedData = remember { mutableStateListOf<ArticuloCompraDto>() }
+    val total = addedData.sumOf { it.quantity * it.unitPrice * (1 - it.impDiscount / 100) }
 
-    val addedMockData = remember { mutableStateListOf<ItemArticle>() }
-    val total = addedMockData.sumOf { it.quantity * it.unitPrice * (1 - it.impDiscount / 100) }
+    val isLoading by viewModel.isLoading
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
@@ -184,266 +174,294 @@ fun PurchaseDataScreen(
             }
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp) // adds spacing between buttons
-            ) {
-                Button(
-                    onClick = {
-                        Log.d("PurchaseDataScreen", "Evidencia button clicked")
-                        showEvidenceSheet = true
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.svg_camera),
-                        contentDescription = "Evidencia",
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Evidencia")
-                }
-
-                Button(
-                    onClick = {
-                        submitPurchaseData(
-                            invoiceNumber,
-                            photoUri,
-                            addedMockData,
-                            onValidPurchase = { showResumeSheet = true },
-                            viewModel
-                        )
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.svg_save),
-                        contentDescription = "Guardar",
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Guardar")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Total: $${String.format("%.2f", total)}",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                textAlign = TextAlign.End,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Desliza a la izquierda para más acciones",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color.Gray,
-                    fontStyle = FontStyle.Italic
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                textAlign = TextAlign.Center
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    "COD",
-                    modifier = Modifier.weight(1f),
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    "NOM",
-                    modifier = Modifier.weight(2f),
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    "CANT",
-                    modifier = Modifier.weight(1f),
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    "C/U",
-                    modifier = Modifier.weight(1f),
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    "IMP",
-                    modifier = Modifier.weight(1f),
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            Divider(color = Color.Gray, thickness = 1.dp)
-
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            ) {
-                items(addedMockData, key = { it.code }) { item ->
-                    SwipeableRow(
-                        item = item,
-                        onInfo = {
-                            selectedArticle = item
-                            showDetailSheet = true
-                        },
-                        onDelete = { addedMockData.remove(item) },
-                        onUpdate = { updated ->
-                            val index = addedMockData.indexOfFirst { it.code == updated.code }
-                            if (index != -1) {
-                                addedMockData[index] = updated
-                            }
-                        }
-                    )
-                }
-            }
-        }
-
-        PurchaseArticleSelectionBottomSheet(
-            showSheet = showSheet,
-            onDismiss = { showSheet = false },
-            onAddArticle = { addedMockData.add(it) },
-            onRemoveArticle = { addedMockData.remove(it) },
-            repositoryData = mockRepository,
-            actualData = addedMockData
-        )
-
-        EvidenceBottomSheet(
-            showSheet = showEvidenceSheet,
-            onDismiss = { showEvidenceSheet = false },
-            invoiceNumber = invoiceNumber,
-            onInvoiceNumberChange = { invoiceNumber = it },
-            currentDateTime = currentDateTime,
-            photoUri = photoUri,
-            onPhotoTaken = { photoUri = it },
-            onResetPhoto = { photoUri = null }
-        )
-
-        ResumePurchaseBottomSheet(
-            showSheet = showResumeSheet,
-            onDismiss = { showResumeSheet = false },
-            addedArticles = addedMockData,
-            onContinue = { viewModel.showToast("Compra guardada", ToastType.SUCCESS) },
-            photoUri
-        )
-
-        if (showDetailSheet && selectedArticle != null) {
-            val detailSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-            var discountText by remember { mutableStateOf(selectedArticle!!.impDiscount.toString()) }
-
-            ModalBottomSheet(
-                onDismissRequest = { showDetailSheet = false },
-                sheetState = detailSheetState
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
                 Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    val composition by rememberLottieComposition(
+                        LottieCompositionSpec.RawRes(R.raw.lottie_almacen_loading) // 👈 put your .json in res/raw
+                    )
+
+                    LottieAnimation(
+                        composition = composition,
+                        iterations = LottieConstants.IterateForever,
+                        modifier = Modifier.size(180.dp)
+                    )
+
+                    Text(text = "Cargando...", fontSize = 16.sp, color = Color.Gray)
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp)
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp) // adds spacing between buttons
                 ) {
-                    Text(
-                        "Detalles del Artículo",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(Modifier.height(20.dp))
-
-                    @Composable
-                    fun LabeledText(label: String, value: String) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = label,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(text = value)
-                        }
+                    Button(
+                        onClick = {
+                            Log.d("PurchaseDataScreen", "Evidencia button clicked")
+                            showEvidenceSheet = true
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.svg_camera),
+                            contentDescription = "Evidencia",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Evidencia")
                     }
 
-                    LabeledText("Código:", selectedArticle!!.code)
-                    Spacer(Modifier.height(8.dp))
-
-                    LabeledText("Nombre:", selectedArticle!!.name)
-                    Spacer(Modifier.height(8.dp))
-
-                    LabeledText("Cantidad:", "${selectedArticle!!.quantity}")
-                    Spacer(Modifier.height(8.dp))
-
-                    LabeledText(
-                        "Precio Unitario:",
-                        "$${String.format("%.2f", selectedArticle!!.unitPrice)}"
-                    )
-                    Spacer(Modifier.height(8.dp))
-
-                    LabeledText(
-                        "Importe:",
-                        "$${
-                            String.format(
-                                "%.2f",
-                                selectedArticle!!.quantity * selectedArticle!!.unitPrice
+                    Button(
+                        onClick = {
+                            submitPurchaseData(
+                                invoiceNumber,
+                                photoUri,
+                                addedData,
+                                onValidPurchase = { showResumeSheet = true },
+                                viewModel
                             )
-                        }"
-                    )
-
-                    Spacer(Modifier.height(20.dp))
-
-                    OutlinedTextField(
-                        value = discountText,
-                        onValueChange = {
-                            discountText = it
-                            val discount = it.toDoubleOrNull() ?: 0.0
-                            val updated = selectedArticle!!.copy(impDiscount = discount)
-                            selectedArticle = updated
-                            val index = addedMockData.indexOfFirst { it.code == updated.code }
-                            if (index != -1) {
-                                addedMockData[index] = updated
-                            }
                         },
-                        label = { Text("Descuento (%)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.svg_save),
+                            contentDescription = "Guardar",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Guardar")
+                    }
+                }
 
-                    Spacer(Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
+                Text(
+                    text = "Total: $${String.format("%.2f", total)}",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    textAlign = TextAlign.End,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Desliza a la izquierda para más acciones",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = Color.Gray,
+                        fontStyle = FontStyle.Italic
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    textAlign = TextAlign.Center
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text(
-                        text = "Importe con Descuento: $${
-                            String.format(
-                                "%.2f",
-                                selectedArticle!!.quantity * selectedArticle!!.unitPrice * (1 - selectedArticle!!.impDiscount / 100)
-                            )
-                        }",
+                        "COD",
+                        modifier = Modifier.weight(1f),
                         fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyLarge
+                        textAlign = TextAlign.Center
                     )
+                    Text(
+                        "NOM",
+                        modifier = Modifier.weight(2f),
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        "CANT",
+                        modifier = Modifier.weight(1f),
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        "C/U",
+                        modifier = Modifier.weight(1f),
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        "IMP",
+                        modifier = Modifier.weight(1f),
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                Divider(color = Color.Gray, thickness = 1.dp)
+
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    items(addedData, key = { it.codigo }) { item ->
+                        SwipeableRow(
+                            item = item,
+                            onInfo = {
+                                selectedArticle = item
+                                showDetailSheet = true
+                            },
+                            onDelete = { addedData.remove(item) },
+                            onUpdate = { updated ->
+                                val index = addedData.indexOfFirst { it.idArticulo == updated.idArticulo }
+                                if (index != -1) {
+                                    addedData[index] = updated
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+
+            PurchaseArticleSelectionBottomSheet(
+                showSheet = showSheet,
+                onDismiss = { showSheet = false },
+                onAddArticle = { addedData.add(it) },
+                onRemoveArticle = { addedData.remove(it) },
+                allData = dataRepository,
+                actualData = addedData
+            )
+
+            EvidenceBottomSheet(
+                showSheet = showEvidenceSheet,
+                onDismiss = { showEvidenceSheet = false },
+                invoiceNumber = invoiceNumber,
+                onInvoiceNumberChange = { invoiceNumber = it },
+                currentDateTime = currentDateTime,
+                photoUri = photoUri,
+                onPhotoTaken = { photoUri = it },
+                onResetPhoto = { photoUri = null }
+            )
+
+            ResumePurchaseBottomSheet(
+                showSheet = showResumeSheet,
+                onDismiss = { showResumeSheet = false },
+                addedArticles = addedData,
+                onContinue = { viewModel.showToast("Compra guardada", ToastType.SUCCESS) },
+                photoUri
+            )
+
+            if (showDetailSheet && selectedArticle != null) {
+                val detailSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+                var discountText by remember { mutableStateOf(selectedArticle!!.impDiscount.toString()) }
+
+                ModalBottomSheet(
+                    onDismissRequest = { showDetailSheet = false },
+                    sheetState = detailSheetState
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                    ) {
+                        Text(
+                            "Detalles del Artículo",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(Modifier.height(20.dp))
+
+                        @Composable
+                        fun LabeledText(label: String, value: String) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(text = value)
+                            }
+                        }
+
+                        LabeledText("Código:", selectedArticle!!.codigo)
+
+                        Spacer(Modifier.height(8.dp))
+
+                        LabeledText("Nombre:", selectedArticle!!.nombre)
+
+                        Spacer(Modifier.height(8.dp))
+
+                        LabeledText("Cantidad:", "${selectedArticle!!.quantity}")
+
+                        Spacer(Modifier.height(8.dp))
+
+                        LabeledText(
+                            "Precio Unitario:",
+                            "$${String.format("%.2f", selectedArticle!!.unitPrice)}"
+                        )
+
+                        Spacer(Modifier.height(8.dp))
+
+                        LabeledText(
+                            "Importe:",
+                            "$${
+                                String.format(
+                                    "%.2f",
+                                    selectedArticle!!.quantity * selectedArticle!!.unitPrice
+                                )
+                            }"
+                        )
+
+                        Spacer(Modifier.height(20.dp))
+
+                        OutlinedTextField(
+                            value = discountText,
+                            onValueChange = {
+                                discountText = it
+                                val discount = it.toDoubleOrNull() ?: 0.0
+                                val updated = selectedArticle!!.copy(impDiscount = discount)
+                                selectedArticle = updated
+                                val index = addedData.indexOfFirst { it.codigo == updated.codigo }
+                                if (index != -1) {
+                                    addedData[index] = updated
+                                }
+                            },
+                            label = { Text("Descuento (%)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(Modifier.height(20.dp))
+
+                        Text(
+                            text = "Importe con Descuento: $${
+                                String.format(
+                                    "%.2f",
+                                    selectedArticle!!.quantity * selectedArticle!!.unitPrice * (1 - selectedArticle!!.impDiscount / 100)
+                                )
+                            }",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
                 }
             }
         }
@@ -461,12 +479,11 @@ fun PurchaseDataScreen(
 fun submitPurchaseData(
     invoiceNumber: String,
     photoUri: Uri?,
-    addedMockData: List<ItemArticle>,
+    addedMockData: List<ArticuloCompraDto>,
     onValidPurchase: () -> Unit,
     viewModel: PurchaseDataViewModel
 ) {
     if (validatePurchase(invoiceNumber, photoUri, addedMockData)) {
-        // Trigger the Resume BottomSheet
         onValidPurchase()
     } else {
         viewModel.showToast("Faltan datos para completar la compra", ToastType.DANGER)
@@ -476,7 +493,7 @@ fun submitPurchaseData(
 fun validatePurchase(
     invoiceNumber: String,
     photoUri: Uri?,
-    addedArticles: List<ItemArticle>
+    addedArticles: List<ArticuloCompraDto>
 ): Boolean {
     return invoiceNumber.isNotBlank() && photoUri != null && addedArticles.isNotEmpty()
 }
@@ -486,10 +503,10 @@ fun validatePurchase(
 fun PurchaseArticleSelectionBottomSheet(
     showSheet: Boolean,
     onDismiss: () -> Unit,
-    onAddArticle: (ItemArticle) -> Unit,
-    onRemoveArticle: (ItemArticle) -> Unit,
-    repositoryData: List<ItemArticle>,
-    actualData: List<ItemArticle>
+    onAddArticle: (ArticuloCompraDto) -> Unit,
+    onRemoveArticle: (ArticuloCompraDto) -> Unit,
+    allData: List<ArticuloCompraDto>,
+    actualData: List<ArticuloCompraDto>
 ) {
     if (showSheet) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -506,7 +523,7 @@ fun PurchaseArticleSelectionBottomSheet(
             ) {
                 PurchaseArticleSelectionModal(
                     onDismiss = onDismiss,
-                    repositoryData = repositoryData,
+                    repositoryData = allData,
                     actualData = actualData,
                     onAddArticle = onAddArticle,
                     onRemoveArticle = onRemoveArticle
@@ -557,10 +574,10 @@ fun EvidenceBottomSheet(
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun SwipeableRow(
-    item: ItemArticle,
+    item: ArticuloCompraDto,
     onInfo: () -> Unit,
     onDelete: () -> Unit,
-    onUpdate: (ItemArticle) -> Unit
+    onUpdate: (ArticuloCompraDto) -> Unit
 ) {
     val swipeState = rememberSwipeableState(initialValue = 0)
     val swipeDistance = with(LocalDensity.current) { 200.dp.toPx() }
@@ -570,8 +587,6 @@ fun SwipeableRow(
     var priceText by remember(item) { mutableStateOf(item.unitPrice.toString()) }
     val coroutineScope = rememberCoroutineScope()
 
-
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -580,7 +595,7 @@ fun SwipeableRow(
         Row(
             modifier = Modifier
                 .fillMaxHeight()
-                .width(with(LocalDensity.current) { swipeDistance.toDp() }) // make Row wide enough
+                .width(with(LocalDensity.current) { swipeDistance.toDp() })
                 .align(Alignment.CenterEnd),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
@@ -591,7 +606,7 @@ fun SwipeableRow(
                         painter = painterResource(id = R.drawable.svg_percentage),
                         contentDescription = "View",
                         tint = Color(0xFF1976D2),
-                        modifier = Modifier.size(24.dp) // adjust icon size
+                        modifier = Modifier.size(24.dp)
                     )
                 }
 
@@ -627,7 +642,6 @@ fun SwipeableRow(
             }
         }
 
-        // Foreground (swipeable)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -643,9 +657,9 @@ fun SwipeableRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(item.code, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text(item.codigo, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             Text(
-                item.name,
+                item.nombre,
                 modifier = Modifier.weight(2f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -695,7 +709,7 @@ fun SwipeableRow(
 fun ResumePurchaseBottomSheet(
     showSheet: Boolean,
     onDismiss: () -> Unit,
-    addedArticles: List<ItemArticle>,
+    addedArticles: List<ArticuloCompraDto>,
     onContinue: () -> Unit,
     uri: Uri?
 ) {
