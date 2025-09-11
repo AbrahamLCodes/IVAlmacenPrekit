@@ -9,7 +9,7 @@ import com.iv.ivalmacenprekit.ui.theme.IVAlmacenPrekitTheme
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.iv.ivalmacenprekit.features.ComprasData.PurchaseDataScreen
+import com.iv.ivalmacenprekit.features.PurchaseData.PurchaseDataScreen
 import com.iv.ivalmacenprekit.navigation.Screen
 import com.iv.ivalmacenprekit.features.auth.AuthScreen
 import com.iv.ivalmacenprekit.features.home.HomeScreen

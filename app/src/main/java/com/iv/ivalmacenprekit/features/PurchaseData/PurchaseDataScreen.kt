@@ -1,4 +1,4 @@
-package com.iv.ivalmacenprekit.features.ComprasData
+package com.iv.ivalmacenprekit.features.PurchaseData
 
 import android.net.Uri
 import android.util.Log
@@ -75,9 +75,9 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.iv.ivalmacenprekit.R
 import com.iv.ivalmacenprekit.apiclient.dto.ArticuloCompraDto
-import com.iv.ivalmacenprekit.features.ComprasData.modals.EvidenceModal
-import com.iv.ivalmacenprekit.features.ComprasData.modals.PurchaseArticleSelectionModal
-import com.iv.ivalmacenprekit.features.ComprasData.modals.ResumeModalBottomSheet
+import com.iv.ivalmacenprekit.features.PurchaseData.modals.EvidenceModal
+import com.iv.ivalmacenprekit.features.PurchaseData.modals.PurchaseArticleSelectionModal
+import com.iv.ivalmacenprekit.features.PurchaseData.modals.ResumeModalBottomSheet
 import com.iv.ivalmacenprekit.features.shared.customtoast.AppToast
 import com.iv.ivalmacenprekit.features.shared.customtoast.ToastType
 import com.iv.ivalmacenprekit.features.shared.customtoast.UiEvent
@@ -90,42 +90,21 @@ fun PurchaseDataScreen(
     navController: NavController,
     viewModel: PurchaseDataViewModel = hiltViewModel()
 ) {
-    var showSheet by remember { mutableStateOf(false) }
-    var selectedArticle by remember { mutableStateOf<ArticuloCompraDto?>(null) }
-    var showDetailSheet by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState
+    val isLoading by viewModel.isLoading
+    val allArticles by viewModel.allArticles
 
-    var showEvidenceSheet by remember { mutableStateOf(false) }
-    var invoiceNumber by remember { mutableStateOf("") }
-    var photoUri by remember { mutableStateOf<Uri?>(null) }
     val currentDateTime = remember {
         java.time.format.DateTimeFormatter
             .ofPattern("dd/MM/yyyy HH:mm")
             .format(java.time.LocalDateTime.now())
     }
 
-    var toastVisible by remember { mutableStateOf(false) }
-    var toastMessage by remember { mutableStateOf("") }
-    var toastType by remember { mutableStateOf(ToastType.INFO) }
-
-    var showResumeSheet by remember { mutableStateOf(false) }
-
-    val dataRepository by viewModel.allArticles
-    val addedData = remember { mutableStateListOf<ArticuloCompraDto>() }
-    val total = addedData.sumOf { it.quantity * it.unitPrice * (1 - it.impDiscount / 100) }
-
-    val isLoading by viewModel.isLoading
-
+    // Listen to UiEvents (like Toast)
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
-            when (event) {
-                is UiEvent.ShowToast -> {
-                    toastMessage = event.message
-                    toastType = event.type
-                    toastVisible = true
-                    Log.d("", "Showing Toast Launched Effect")
-                }
-
-                else -> {}
+            if (event is UiEvent.ShowToast) {
+                viewModel.showToastState(event.message, event.type)
             }
         }
     }
@@ -138,12 +117,11 @@ fun PurchaseDataScreen(
                 bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             )
     ) {
+        // Header
         Surface(color = Color(0xFF7B1E3D), modifier = Modifier.fillMaxWidth()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp)
-            ) {
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp)) {
                 IconButton(
                     onClick = { navController.navigateUp() },
                     modifier = Modifier.align(Alignment.CenterStart)
@@ -163,7 +141,7 @@ fun PurchaseDataScreen(
                 )
 
                 IconButton(
-                    onClick = { showSheet = true },
+                    onClick = { viewModel.toggleSheet(true) },
                     modifier = Modifier.align(Alignment.CenterEnd)
                 ) {
                     Icon(
@@ -175,46 +153,35 @@ fun PurchaseDataScreen(
             }
         }
 
+        // Loading state
         if (isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    val composition by rememberLottieComposition(
-                        LottieCompositionSpec.RawRes(R.raw.lottie_almacen_loading) // 👈 put your .json in res/raw
-                    )
-
+                    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_almacen_loading))
                     LottieAnimation(
                         composition = composition,
                         iterations = LottieConstants.IterateForever,
                         modifier = Modifier.size(180.dp)
                     )
-
                     Text(text = "Cargando...", fontSize = 16.sp, color = Color.Gray)
                 }
             }
         } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-
+            Column(modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 8.dp)) {
+                // Buttons
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp) // adds spacing between buttons
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Button(
-                        onClick = {
-                            Log.d("PurchaseDataScreen", "Evidencia button clicked")
-                            showEvidenceSheet = true
-                        },
+                        onClick = { viewModel.toggleEvidenceSheet(true) },
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(
@@ -230,10 +197,10 @@ fun PurchaseDataScreen(
                     Button(
                         onClick = {
                             submitPurchaseData(
-                                invoiceNumber,
-                                photoUri,
-                                addedData,
-                                onValidPurchase = { showResumeSheet = true },
+                                uiState.invoiceNumber,
+                                uiState.photoUri,
+                                uiState.addedData,
+                                onValidPurchase = { viewModel.toggleResumeSheet(true) },
                                 viewModel
                             )
                         },
@@ -252,6 +219,9 @@ fun PurchaseDataScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // Total
+                val total =
+                    uiState.addedData.sumOf { it.quantity * it.unitPrice * (1 - it.impDiscount / 100) }
                 Text(
                     text = "Total: $${String.format("%.2f", total)}",
                     modifier = Modifier
@@ -262,7 +232,6 @@ fun PurchaseDataScreen(
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
-
                 Text(
                     text = "Desliza a la izquierda para más acciones",
                     style = MaterialTheme.typography.bodyMedium.copy(
@@ -275,6 +244,7 @@ fun PurchaseDataScreen(
                     textAlign = TextAlign.Center
                 )
 
+                // Table header
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -315,77 +285,66 @@ fun PurchaseDataScreen(
 
                 Divider(color = Color.Gray, thickness = 1.dp)
 
-                LazyColumn(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                ) {
-                    items(addedData, key = { it.codigo }) { item ->
+                // Items
+                LazyColumn(modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()) {
+                    items(uiState.addedData, key = { it.codigo }) { item ->
                         SwipeableRow(
                             item = item,
-                            onInfo = {
-                                selectedArticle = item
-                                showDetailSheet = true
-                            },
-                            onDelete = { addedData.remove(item) },
-                            onUpdate = { updated ->
-                                val index = addedData.indexOfFirst { it.idArticulo == updated.idArticulo }
-                                if (index != -1) {
-                                    addedData[index] = updated
-                                }
-                            }
+                            onInfo = { viewModel.selectArticle(item) },
+                            onDelete = { viewModel.removeArticle(item) },
+                            onUpdate = { viewModel.updateArticle(it) }
                         )
                     }
                 }
             }
 
+            // BottomSheets
             PurchaseArticleSelectionBottomSheet(
-                showSheet = showSheet,
-                onDismiss = { showSheet = false },
-                onAddArticle = { addedData.add(it) },
-                onRemoveArticle = { addedData.remove(it) },
-                allData = dataRepository,
-                actualData = addedData
+                showSheet = uiState.showSheet,
+                onDismiss = { viewModel.toggleSheet(false) },
+                onAddArticle = { viewModel.addArticle(it) },
+                onRemoveArticle = { viewModel.removeArticle(it) },
+                allData = allArticles,
+                actualData = uiState.addedData
             )
 
             EvidenceBottomSheet(
-                showSheet = showEvidenceSheet,
-                onDismiss = { showEvidenceSheet = false },
-                invoiceNumber = invoiceNumber,
-                onInvoiceNumberChange = { invoiceNumber = it },
+                showSheet = uiState.showEvidenceSheet,
+                onDismiss = { viewModel.toggleEvidenceSheet(false) },
+                invoiceNumber = uiState.invoiceNumber,
+                onInvoiceNumberChange = { viewModel.setInvoiceNumber(it) },
                 currentDateTime = currentDateTime,
-                photoUri = photoUri,
-                onPhotoTaken = { photoUri = it },
-                onResetPhoto = { photoUri = null }
+                photoUri = uiState.photoUri,
+                onPhotoTaken = { viewModel.setPhoto(it) },
+                onResetPhoto = { viewModel.setPhoto(null) }
             )
 
             ResumePurchaseBottomSheet(
-                showSheet = showResumeSheet,
-                onDismiss = { showResumeSheet = false },
-                addedArticles = addedData,
+                showSheet = uiState.showResumeSheet,
+                onDismiss = { viewModel.toggleResumeSheet(false) },
+                addedArticles = uiState.addedData,
                 onContinue = { viewModel.showToast("Compra guardada", ToastType.SUCCESS) },
-                photoUri
+                uri = uiState.photoUri
             )
 
-            if (showDetailSheet && selectedArticle != null) {
+            if (uiState.showDetailSheet && uiState.selectedArticle != null) {
                 val detailSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-                var discountText by remember { mutableStateOf(selectedArticle!!.impDiscount.toString()) }
+                var discountText by remember { mutableStateOf(uiState.selectedArticle!!.impDiscount.toString()) }
 
                 ModalBottomSheet(
-                    onDismissRequest = { showDetailSheet = false },
+                    onDismissRequest = { viewModel.selectArticle(null) },
                     sheetState = detailSheetState
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp)
-                    ) {
+                    Column(modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)) {
                         Text(
                             "Detalles del Artículo",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
-
                         Spacer(Modifier.height(20.dp))
 
                         @Composable
@@ -394,43 +353,32 @@ fun PurchaseDataScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(
-                                    text = label,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(text = value)
+                                Text(label, fontWeight = FontWeight.Bold)
+                                Text(value)
                             }
                         }
 
-                        LabeledText("Código:", selectedArticle!!.codigo)
-
+                        val selectedArticle = uiState.selectedArticle!!
+                        LabeledText("Código:", selectedArticle.codigo)
                         Spacer(Modifier.height(8.dp))
-
-                        LabeledText("Nombre:", selectedArticle!!.nombre)
-
+                        LabeledText("Nombre:", selectedArticle.nombre)
                         Spacer(Modifier.height(8.dp))
-
-                        LabeledText("Cantidad:", "${selectedArticle!!.quantity}")
-
+                        LabeledText("Cantidad:", "${selectedArticle.quantity}")
                         Spacer(Modifier.height(8.dp))
-
                         LabeledText(
                             "Precio Unitario:",
-                            "$${String.format("%.2f", selectedArticle!!.unitPrice)}"
+                            "$${String.format("%.2f", selectedArticle.unitPrice)}"
                         )
-
                         Spacer(Modifier.height(8.dp))
-
                         LabeledText(
                             "Importe:",
                             "$${
                                 String.format(
                                     "%.2f",
-                                    selectedArticle!!.quantity * selectedArticle!!.unitPrice
+                                    selectedArticle.quantity * selectedArticle.unitPrice
                                 )
                             }"
                         )
-
                         Spacer(Modifier.height(20.dp))
 
                         OutlinedTextField(
@@ -438,12 +386,7 @@ fun PurchaseDataScreen(
                             onValueChange = {
                                 discountText = it
                                 val discount = it.toDoubleOrNull() ?: 0.0
-                                val updated = selectedArticle!!.copy(impDiscount = discount)
-                                selectedArticle = updated
-                                val index = addedData.indexOfFirst { it.codigo == updated.codigo }
-                                if (index != -1) {
-                                    addedData[index] = updated
-                                }
+                                viewModel.updateArticle(selectedArticle.copy(impDiscount = discount))
                             },
                             label = { Text("Descuento (%)") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -451,12 +394,11 @@ fun PurchaseDataScreen(
                         )
 
                         Spacer(Modifier.height(20.dp))
-
                         Text(
                             text = "Importe con Descuento: $${
                                 String.format(
                                     "%.2f",
-                                    selectedArticle!!.quantity * selectedArticle!!.unitPrice * (1 - selectedArticle!!.impDiscount / 100)
+                                    selectedArticle.quantity * selectedArticle.unitPrice * (1 - selectedArticle.impDiscount / 100)
                                 )
                             }",
                             fontWeight = FontWeight.Bold,
@@ -469,10 +411,10 @@ fun PurchaseDataScreen(
     }
 
     AppToast(
-        message = toastMessage,
-        type = toastType,
-        visible = toastVisible,
-        onDismiss = { toastVisible = false }
+        message = uiState.toastMessage,
+        type = uiState.toastType,
+        visible = uiState.toastVisible,
+        onDismiss = { viewModel.dismissToast() }
     )
 }
 

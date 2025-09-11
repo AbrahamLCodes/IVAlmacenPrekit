@@ -1,4 +1,4 @@
-package com.iv.ivalmacenprekit.features.ComprasData.modals
+package com.iv.ivalmacenprekit.features.PurchaseData.modals
 
 import android.content.Context
 import android.graphics.Bitmap
