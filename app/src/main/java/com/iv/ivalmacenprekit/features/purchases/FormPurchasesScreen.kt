@@ -1,6 +1,6 @@
 package com.iv.ivalmacenprekit.features.purchases
 
-import android.app.TimePickerDialog
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,7 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -45,38 +45,56 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.iv.ivalmacenprekit.R
-import com.iv.ivalmacenprekit.apiclient.dto.DataItemDto
+import com.iv.ivalmacenprekit.features.shared.customtimepicker.CustomTimePickerDialog
+import com.iv.ivalmacenprekit.features.shared.customtoast.AppToast
+import com.iv.ivalmacenprekit.features.shared.customtoast.ToastType
+import com.iv.ivalmacenprekit.features.shared.customtoast.UiEvent
 import com.iv.ivalmacenprekit.features.shared.genericselector.GenericSelector
 import com.iv.ivalmacenprekit.navigation.Screen
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PurchasesScreen(
+fun FormPurchasesScreen(
     navController: NavController,
-    viewModel: PurchasesViewModel = hiltViewModel()
+    viewModel: FormPurchasesViewModel = hiltViewModel()
 ) {
+    // Loading state from ViewModel
     val isLoading by viewModel.isLoading
 
-    var number1 by remember { mutableStateOf("") }
-    var number2 by remember { mutableStateOf("") }
-    var selectedDateTime by remember { mutableStateOf("Select date & time") }
+    // Form state from ViewModel
+    val formState by viewModel.formState
 
+    // Date and Time picker state
     var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
-    val context = LocalContext.current
+    var showTimePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = formState.selectedCalendar.timeInMillis
+    )
 
+    // Dropdown data from ViewModel
     val dataAlmacenes by viewModel.dataAlmacenes
     val dataProveedores by viewModel.dataProveedores
     val dataTiposCompra by viewModel.dataTiposCompra
 
-    val selectedAlmacen = remember { mutableStateOf<DataItemDto?>(null) }
-    val selectedProveedor = remember { mutableStateOf<DataItemDto?>(null) }
-    val selectedTipoCompra = remember { mutableStateOf<DataItemDto?>(null) }
+    var toastVisible by remember { mutableStateOf(false) }
+    var toastMessage by remember { mutableStateOf("") }
+    var toastType by remember { mutableStateOf(ToastType.INFO) }
 
     BackHandler { navController.navigateUp() }
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is UiEvent.ShowToast -> {
+                    toastMessage = event.message
+                    toastType = event.type
+                    toastVisible = true
+                }
+                else -> {}
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -151,8 +169,8 @@ fun PurchasesScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedTextField(
-                            value = number1,
-                            onValueChange = { number1 = it },
+                            value = formState.noOrden,
+                            onValueChange = { viewModel.updateNoOrden(it) },
                             label = { Text("No. Orden", fontSize = 12.sp) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -160,7 +178,7 @@ fun PurchasesScreen(
                         )
 
                         OutlinedTextField(
-                            value = selectedDateTime,
+                            value = formState.selectedDateTime,
                             onValueChange = { },
                             label = { Text("Fecha y hora", fontSize = 12.sp) },
                             enabled = false,
@@ -179,8 +197,8 @@ fun PurchasesScreen(
 
                 item {
                     OutlinedTextField(
-                        value = number2,
-                        onValueChange = { number2 = it },
+                        value = formState.noCompra,
+                        onValueChange = { viewModel.updateNoCompra(it) },
                         label = { Text("No. Compra", fontSize = 12.sp) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -191,40 +209,40 @@ fun PurchasesScreen(
                 item {
                     GenericSelector(
                         dataAlmacenes,
-                        selectedAlmacen.value,
+                        formState.selectedAlmacen,
                         itemId = { it.id },
                         itemText = { it.descripcion },
                         label = "Almacén",
-                        onItemSelected = { selectedAlmacen.value = it }
+                        onItemSelected = { viewModel.updateAlmacen(it) }
                     )
                 }
 
                 item {
                     GenericSelector(
                         dataProveedores,
-                        selectedProveedor.value,
+                        formState.selectedProveedor,
                         itemId = { it.id },
                         itemText = { it.descripcion },
                         label = "Proveedor",
-                        onItemSelected = { selectedProveedor.value = it }
+                        onItemSelected = { viewModel.updateProveedor(it) }
                     )
                 }
 
                 item {
                     GenericSelector(
                         dataTiposCompra,
-                        selectedTipoCompra.value,
+                        formState.selectedTipoCompra,
                         itemId = { it.id },
                         itemText = { it.descripcion },
                         label = "Tipo de compra",
-                        onItemSelected = { selectedTipoCompra.value = it }
+                        onItemSelected = { viewModel.updateTipoCompra(it) }
                     )
                 }
 
                 item {
                     OutlinedTextField(
-                        value = number2,
-                        onValueChange = { number2 = it },
+                        value = formState.observaciones,
+                        onValueChange = { viewModel.updateObservaciones(it) },
                         label = { Text("Observaciones", fontSize = 12.sp) },
                         singleLine = false,
                         maxLines = 5,
@@ -245,7 +263,11 @@ fun PurchasesScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Button(
-                            onClick = { navController.navigate(Screen.PurchaseDataScreen.route) },
+                            onClick = {
+                                if (viewModel.validateForm()) {
+                                    navController.navigate(Screen.PurchaseDataScreen.route)
+                                }
+                            },
                             modifier = Modifier
                                 .width(200.dp)
                                 .height(48.dp),
@@ -272,34 +294,52 @@ fun PurchasesScreen(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
                             showDatePicker = false
-
-                            val cal = Calendar.getInstance()
-                            cal.timeInMillis = millis
-
-                            TimePickerDialog(
-                                context,
-                                { _, hour: Int, minute: Int ->
-                                    cal.set(Calendar.HOUR_OF_DAY, hour)
-                                    cal.set(Calendar.MINUTE, minute)
-
-                                    val formatter =
-                                        SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-                                    selectedDateTime = formatter.format(cal.time)
-                                },
-                                cal.get(Calendar.HOUR_OF_DAY),
-                                cal.get(Calendar.MINUTE),
-                                true
-                            ).show()
+                            showTimePicker = true
+                            viewModel.showTimePicker(millis)
                         }
                     }
-                ) { Text("OK") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                ) {
+                    Text(
+                        "Aceptar",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(16.dp, 10.dp)
+                    )
+                }
             }
         ) {
-            DatePicker(state = datePickerState)
+            DatePicker(
+                state = datePickerState,
+                showModeToggle = false,
+                title = {
+                    Text(
+                        text = "Selecciona una fecha",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(16.dp, 10.dp)
+                    )
+                }
+            )
         }
     }
+
+    if (showTimePicker) {
+        Log.d("FormPurchasesScreen", "Rendering TimePicker - $showTimePicker")
+        CustomTimePickerDialog(
+            onDismiss = { showTimePicker = false },
+            onTimeSelected = { hour, minute ->
+                showTimePicker = false
+                viewModel.completeDateTimeSelection(hour, minute)
+            },
+            initialHour = formState.selectedCalendar.get(Calendar.HOUR_OF_DAY),
+            initialMinute = formState.selectedCalendar.get(Calendar.MINUTE)
+        )
+    }
+
+    AppToast(
+        message = toastMessage,
+        type = toastType,
+        visible = toastVisible,
+        onDismiss = { toastVisible = false }
+    )
 }
 

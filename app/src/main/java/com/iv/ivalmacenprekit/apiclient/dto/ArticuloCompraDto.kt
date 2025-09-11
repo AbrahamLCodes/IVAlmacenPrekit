@@ -25,6 +25,8 @@ data class ArticuloCompraDto(
     val nombre: String,
 
     var quantity: Int = 1,
+
+    @SerializedName("CostoUltimo")
     var unitPrice: Double = 0.0,
     var impDiscount: Double = 0.0,
 )

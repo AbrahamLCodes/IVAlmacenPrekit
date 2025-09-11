@@ -98,7 +98,8 @@ fun PurchaseDataScreen(
     var invoiceNumber by remember { mutableStateOf("") }
     var photoUri by remember { mutableStateOf<Uri?>(null) }
     val currentDateTime = remember {
-        java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+        java.time.format.DateTimeFormatter
+            .ofPattern("dd/MM/yyyy HH:mm")
             .format(java.time.LocalDateTime.now())
     }
 

@@ -58,15 +58,12 @@ class PurchaseDataViewModel @Inject constructor(
             if (response.isSuccess) {
                 val dataArticulos = response.getOrNull()!!
 
-                val fixedList = dataArticulos.articulos.map { articulo ->
-                    if (articulo.quantity == 0) {
-                        articulo.copy(quantity = 1)
-                    } else {
-                        articulo
-                    }
+                allArticles.value = dataArticulos.articulos.map { articulo ->
+                    articulo.copy(
+                        quantity = articulo.quantity.takeIf { it > 0 } ?: 1,
+                        unitPrice = articulo.unitPrice.coerceAtLeast(0.0)
+                    )
                 }
-
-                allArticles.value = fixedList
             } else {
                 showToast("Error al obtener los datos", ToastType.DANGER)
             }
