@@ -50,6 +50,7 @@ import com.iv.ivalmacenprekit.features.shared.customtoast.AppToast
 import com.iv.ivalmacenprekit.features.shared.customtoast.ToastType
 import com.iv.ivalmacenprekit.features.shared.customtoast.UiEvent
 import com.iv.ivalmacenprekit.features.shared.genericselector.GenericSelector
+import com.iv.ivalmacenprekit.features.shared.purchases.SharedPurchaseViewModel
 import com.iv.ivalmacenprekit.navigation.Screen
 import java.util.Calendar
 
@@ -57,7 +58,7 @@ import java.util.Calendar
 @Composable
 fun FormPurchasesScreen(
     navController: NavController,
-    viewModel: FormPurchasesViewModel = hiltViewModel()
+    viewModel: SharedPurchaseViewModel = hiltViewModel()
 ) {
     // Loading state from ViewModel
     val isLoading by viewModel.isLoading

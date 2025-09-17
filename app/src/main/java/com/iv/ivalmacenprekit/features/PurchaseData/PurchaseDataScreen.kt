@@ -1,7 +1,6 @@
 package com.iv.ivalmacenprekit.features.PurchaseData
 
 import android.net.Uri
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Arrangement
@@ -49,7 +48,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -81,6 +79,7 @@ import com.iv.ivalmacenprekit.features.PurchaseData.modals.ResumeModalBottomShee
 import com.iv.ivalmacenprekit.features.shared.customtoast.AppToast
 import com.iv.ivalmacenprekit.features.shared.customtoast.ToastType
 import com.iv.ivalmacenprekit.features.shared.customtoast.UiEvent
+import com.iv.ivalmacenprekit.features.shared.purchases.SharedPurchaseViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -88,17 +87,13 @@ import kotlin.math.roundToInt
 @Composable
 fun PurchaseDataScreen(
     navController: NavController,
-    viewModel: PurchaseDataViewModel = hiltViewModel()
+    viewModel: SharedPurchaseViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState
     val isLoading by viewModel.isLoading
     val allArticles by viewModel.allArticles
 
-    val currentDateTime = remember {
-        java.time.format.DateTimeFormatter
-            .ofPattern("dd/MM/yyyy HH:mm")
-            .format(java.time.LocalDateTime.now())
-    }
+    var currentDateTime by remember { mutableStateOf("") }
 
     // Listen to UiEvents (like Toast)
     LaunchedEffect(Unit) {
@@ -106,6 +101,14 @@ fun PurchaseDataScreen(
             if (event is UiEvent.ShowToast) {
                 viewModel.showToastState(event.message, event.type)
             }
+        }
+    }
+
+    LaunchedEffect(uiState.showEvidenceSheet) {
+        if (uiState.showEvidenceSheet) {
+            currentDateTime = java.time.format.DateTimeFormatter
+                .ofPattern("dd/MM/yyyy HH:mm")
+                .format(java.time.LocalDateTime.now())
         }
     }
 
@@ -119,9 +122,11 @@ fun PurchaseDataScreen(
     ) {
         // Header
         Surface(color = Color(0xFF7B1E3D), modifier = Modifier.fillMaxWidth()) {
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp)
+            ) {
                 IconButton(
                     onClick = { navController.navigateUp() },
                     modifier = Modifier.align(Alignment.CenterStart)
@@ -170,9 +175,11 @@ fun PurchaseDataScreen(
                 }
             }
         } else {
-            Column(modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
                 // Buttons
                 Row(
                     modifier = Modifier
@@ -286,9 +293,11 @@ fun PurchaseDataScreen(
                 Divider(color = Color.Gray, thickness = 1.dp)
 
                 // Items
-                LazyColumn(modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()) {
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
                     items(uiState.addedData, key = { it.codigo }) { item ->
                         SwipeableRow(
                             item = item,
@@ -337,9 +346,11 @@ fun PurchaseDataScreen(
                     onDismissRequest = { viewModel.selectArticle(null) },
                     sheetState = detailSheetState
                 ) {
-                    Column(modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                    ) {
                         Text(
                             "Detalles del Artículo",
                             style = MaterialTheme.typography.titleLarge,
@@ -424,7 +435,7 @@ fun submitPurchaseData(
     photoUri: Uri?,
     addedMockData: List<ArticuloCompraDto>,
     onValidPurchase: () -> Unit,
-    viewModel: PurchaseDataViewModel
+    viewModel: SharedPurchaseViewModel
 ) {
     if (validatePurchase(invoiceNumber, photoUri, addedMockData)) {
         onValidPurchase()
